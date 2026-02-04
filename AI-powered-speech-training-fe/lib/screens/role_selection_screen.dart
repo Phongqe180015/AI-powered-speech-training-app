@@ -1,0 +1,318 @@
+import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+
+class RoleSelectionScreen extends StatelessWidget {
+  final Function(String) onRoleSelected;
+
+  const RoleSelectionScreen({
+    super.key,
+    required this.onRoleSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withOpacity(0.05),
+              AppColors.white,
+              AppColors.secondary.withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Header
+                  const Icon(
+                    Icons.mic_rounded,
+                    size: 64,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'AI Speaking Practice',
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.gray900,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Luyện nói và nhận đánh giá từ AI',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.gray600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Role Cards
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 600;
+                        return Flex(
+                          direction: isWide ? Axis.horizontal : Axis.vertical,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // User Card
+                            isWide
+                                ? Expanded(
+                                    child: _RoleCard(
+                                      icon: Icons.person_rounded,
+                                      iconColor: AppColors.primary,
+                                      iconBgColor: AppColors.primary.withOpacity(0.1),
+                                      title: 'User',
+                                      description:
+                                          'Luyện tập speaking với các topic được giao và nhận feedback từ AI',
+                                      features: const [
+                                        '✓ Chọn topics luyện tập',
+                                        '✓ Ghi âm và nhận AI feedback',
+                                        '✓ Xem lịch sử và theo dõi tiến độ',
+                                        '✓ Đánh giá chi tiết từng kỹ năng',
+                                      ],
+                                      buttonText: 'Bắt đầu với User',
+                                      onTap: () => onRoleSelected('user'),
+                                    ),
+                                  )
+                                : _RoleCard(
+                                    icon: Icons.person_rounded,
+                                    iconColor: AppColors.primary,
+                                    iconBgColor: AppColors.primary.withOpacity(0.1),
+                                    title: 'User',
+                                    description:
+                                        'Luyện tập speaking với các topic được giao và nhận feedback từ AI',
+                                    features: const [
+                                      '✓ Chọn topics luyện tập',
+                                      '✓ Ghi âm và nhận AI feedback',
+                                      '✓ Xem lịch sử và theo dõi tiến độ',
+                                      '✓ Đánh giá chi tiết từng kỹ năng',
+                                    ],
+                                    buttonText: 'Bắt đầu với User',
+                                    onTap: () => onRoleSelected('user'),
+                                  ),
+                            if (isWide)
+                              const SizedBox(width: 24)
+                            else
+                              const SizedBox(height: 24),
+                            // Admin Card
+                            isWide
+                                ? Expanded(
+                                    child: _RoleCard(
+                                      icon: Icons.settings_rounded,
+                                      iconColor: AppColors.secondary,
+                                      iconBgColor: AppColors.secondary.withOpacity(0.1),
+                                      title: 'Admin',
+                                      description:
+                                          'Quản lý topics, theo dõi hoạt động và hiệu suất của users',
+                                      features: const [
+                                        '✓ Tạo và quản lý topics',
+                                        '✓ Dashboard thống kê',
+                                        '✓ Theo dõi hiệu suất users',
+                                        '✓ Phân tích xu hướng học tập',
+                                      ],
+                                      buttonText: 'Bắt đầu với Admin',
+                                      onTap: () => onRoleSelected('admin'),
+                                      isOutlined: true,
+                                    ),
+                                  )
+                                : _RoleCard(
+                                    icon: Icons.settings_rounded,
+                                    iconColor: AppColors.secondary,
+                                    iconBgColor: AppColors.secondary.withOpacity(0.1),
+                                    title: 'Admin',
+                                    description:
+                                        'Quản lý topics, theo dõi hoạt động và hiệu suất của users',
+                                    features: const [
+                                      '✓ Tạo và quản lý topics',
+                                      '✓ Dashboard thống kê',
+                                      '✓ Theo dõi hiệu suất users',
+                                      '✓ Phân tích xu hướng học tập',
+                                    ],
+                                    buttonText: 'Bắt đầu với Admin',
+                                    onTap: () => onRoleSelected('admin'),
+                                    isOutlined: true,
+                                  ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleCard extends StatefulWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBgColor;
+  final String title;
+  final String description;
+  final List<String> features;
+  final String buttonText;
+  final VoidCallback onTap;
+  final bool isOutlined;
+
+  const _RoleCard({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBgColor,
+    required this.title,
+    required this.description,
+    required this.features,
+    required this.buttonText,
+    required this.onTap,
+    this.isOutlined = false,
+  });
+
+  @override
+  State<_RoleCard> createState() => _RoleCardState();
+}
+
+class _RoleCardState extends State<_RoleCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered
+                  ? widget.iconColor
+                  : AppColors.gray200,
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: widget.iconColor.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : [],
+          ),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Icon
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: widget.iconBgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  widget.icon,
+                  size: 36,
+                  color: widget.iconColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Title
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.gray900,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Description
+              Text(
+                widget.description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.gray600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Features
+              ...widget.features.map((feature) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      feature,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.gray600,
+                      ),
+                    ),
+                  )),
+              const SizedBox(height: 24),
+
+              // Button
+              SizedBox(
+                width: double.infinity,
+                child: widget.isOutlined
+                    ? OutlinedButton(
+                        onPressed: widget.onTap,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: widget.iconColor, width: 1.5),
+                          foregroundColor: widget.iconColor,
+                        ),
+                        child: Text(
+                          widget.buttonText,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: widget.onTap,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: widget.iconColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(
+                          widget.buttonText,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
