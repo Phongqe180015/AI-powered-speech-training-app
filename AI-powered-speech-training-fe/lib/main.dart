@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'models/topic.dart';
 import 'models/recording.dart';
+import 'services/api_service.dart';
+import 'screens/auth_screen.dart';
 import 'screens/role_selection_screen.dart';
 import 'screens/topic_feed_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/topic_management_screen.dart';
+import 'screens/practice_screen.dart';
+import 'screens/recording_detail_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,8 +39,18 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   String? _currentRole;
+  Map<String, dynamic>? _currentUser;
   int _currentUserTab = 0;
   int _currentAdminTab = 0;
+
+  void _handleAuthenticated(Map<String, dynamic> user) {
+    setState(() {
+      _currentUser = user;
+      _currentRole = user['role'];
+      _currentUserTab = 0;
+      _currentAdminTab = 0;
+    });
+  }
 
   void _handleRoleSelected(String role) {
     setState(() {
@@ -47,117 +61,38 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _handleLogout() {
+    ApiService.setToken(null);
     setState(() {
       _currentRole = null;
+      _currentUser = null;
       _currentUserTab = 0;
       _currentAdminTab = 0;
     });
   }
 
   void _handleSelectTopic(Topic topic) {
-    // Navigate to practice screen
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: Text(topic.title),
-          ),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.mic_rounded,
-                  size: 100,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Practice Screen',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  topic.title,
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Quay lại'),
-                ),
-              ],
-            ),
-          ),
-        ),
+        builder: (context) => PracticeScreen(topic: topic),
       ),
     );
   }
 
   void _handleViewRecording(Recording recording) {
-    // Navigate to feedback screen
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: Text(recording.topicTitle),
-          ),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.feedback_rounded,
-                  size: 100,
-                  color: AppColors.success,
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Feedback View',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  recording.topicTitle,
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Overall Score: ${recording.feedback.overall}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.success,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Quay lại'),
-                ),
-              ],
-            ),
-          ),
-        ),
+        builder: (context) => RecordingDetailScreen(recording: recording),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Role selection screen
-    if (_currentRole == null) {
-      return RoleSelectionScreen(
-        onRoleSelected: _handleRoleSelected,
-      );
+    // Auth screen (when no user logged in)
+    if (_currentUser == null) {
+      return AuthScreen(onAuthenticated: _handleAuthenticated);
     }
 
     // User interface
@@ -200,9 +135,9 @@ class _MainScreenState extends State<MainScreen> {
           actions: [
             CircleAvatar(
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              child: const Text(
-                'U',
-                style: TextStyle(
+              child: Text(
+                (_currentUser?['username'] ?? 'U')[0].toUpperCase(),
+                style: const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
@@ -212,7 +147,7 @@ class _MainScreenState extends State<MainScreen> {
             TextButton.icon(
               onPressed: _handleLogout,
               icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Đổi role'),
+              label: const Text('Đăng xuất'),
             ),
             const SizedBox(width: 8),
           ],
@@ -299,9 +234,9 @@ class _MainScreenState extends State<MainScreen> {
           actions: [
             CircleAvatar(
               backgroundColor: AppColors.secondary.withOpacity(0.1),
-              child: const Text(
-                'A',
-                style: TextStyle(
+              child: Text(
+                (_currentUser?['username'] ?? 'A')[0].toUpperCase(),
+                style: const TextStyle(
                   color: AppColors.secondary,
                   fontWeight: FontWeight.bold,
                 ),
@@ -311,7 +246,7 @@ class _MainScreenState extends State<MainScreen> {
             TextButton.icon(
               onPressed: _handleLogout,
               icon: const Icon(Icons.logout, size: 18),
-              label: const Text('Đổi role'),
+              label: const Text('Đăng xuất'),
             ),
             const SizedBox(width: 8),
           ],

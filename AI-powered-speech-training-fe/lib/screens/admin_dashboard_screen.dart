@@ -1,12 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  Map<String, dynamic>? _stats;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final result = await ApiService.getAdminStats();
+      setState(() {
+        _stats = result;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final totalUsers = _stats?['totalUsers']?.toString() ?? '0';
+    final totalTopics = _stats?['totalTopics']?.toString() ?? '0';
+    final weekRecordings = _stats?['weekRecordings']?.toString() ?? '0';
+    final weekChange = _stats?['weekChange'] ?? 0;
+    final avgScore = (_stats?['avgScore'] ?? 0).toString();
+    final avgScoreChange = _stats?['avgScoreChange'] ?? 0;
+    final weeklyActivity = _stats?['weeklyActivity'] as List? ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,18 +76,18 @@ class AdminDashboardScreen extends StatelessWidget {
           mainAxisSpacing: 16,
           childAspectRatio: 2,
           physics: const NeverScrollableScrollPhysics(),
-          children: const [
+          children: [
             _MetricCard(
               title: 'Tổng Users',
-              value: '248',
-              change: '+12% so với tháng trước',
+              value: totalUsers,
+              change: 'Đang hoạt động',
               icon: Icons.people_outline,
               color: AppColors.primary,
               isPositive: true,
             ),
             _MetricCard(
               title: 'Tổng Topics',
-              value: '64',
+              value: totalTopics,
               change: 'Đang hoạt động',
               icon: Icons.book_outlined,
               color: AppColors.secondary,
@@ -56,19 +95,19 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
             _MetricCard(
               title: 'Bài luyện tuần này',
-              value: '1,342',
-              change: '+18% so với tuần trước',
+              value: weekRecordings,
+              change: '${weekChange >= 0 ? '+' : ''}$weekChange% so với tuần trước',
               icon: Icons.trending_up,
               color: AppColors.success,
-              isPositive: true,
+              isPositive: weekChange >= 0,
             ),
             _MetricCard(
               title: 'Điểm TB',
-              value: '7.8',
-              change: '+0.5 điểm so với tháng trước',
+              value: avgScore,
+              change: '${avgScoreChange >= 0 ? '+' : ''}$avgScoreChange điểm',
               icon: Icons.star_outline,
               color: AppColors.warning,
-              isPositive: true,
+              isPositive: avgScoreChange >= 0,
             ),
           ],
         ),
@@ -100,7 +139,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   Expanded(
-                    child: _WeeklyActivityChart(),
+                    child: _WeeklyActivityChart(weeklyActivity: weeklyActivity),
                   ),
                 ],
               ),
@@ -201,17 +240,24 @@ class _MetricCard extends StatelessWidget {
 }
 
 class _WeeklyActivityChart extends StatelessWidget {
-  final List<double> data = [12, 19, 15, 23, 18, 26, 20];
-  final List<String> labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  final List<dynamic> weeklyActivity;
 
-  _WeeklyActivityChart({super.key});
+  const _WeeklyActivityChart({required this.weeklyActivity});
 
   @override
   Widget build(BuildContext context) {
+    final labels = weeklyActivity.map((d) => d['day']?.toString() ?? '').toList();
+    final data = weeklyActivity.map((d) => (d['count'] as num?)?.toDouble() ?? 0).toList();
+    final maxY = data.isEmpty ? 10.0 : (data.reduce((a, b) => a > b ? a : b) * 1.3).ceilToDouble();
+
+    if (data.isEmpty) {
+      return const Center(child: Text('Chưa có dữ liệu'));
+    }
+
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
-        maxY: 28,
+        maxY: maxY,
         barTouchData: BarTouchData(
           enabled: true,
           touchTooltipData: BarTouchTooltipData(

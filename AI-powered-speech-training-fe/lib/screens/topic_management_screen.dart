@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/topic.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class TopicManagementScreen extends StatefulWidget {
@@ -11,54 +12,59 @@ class TopicManagementScreen extends StatefulWidget {
 }
 
 class _TopicManagementScreenState extends State<TopicManagementScreen> {
-  // Mock data
-  final List<Topic> _topics = [
-    Topic(
-      id: '1',
-      title: 'Travel and Tourism',
-      prompt: 'Discuss your travel experiences and favorite destinations',
-      level: TopicLevel.intermediate,
-      tags: ['IELTS', 'Daily'],
-      questions: [
-        'What is your favorite place to visit?',
-        'How do you usually plan your trips?',
-        'What makes a destination worth visiting?',
-      ],
-      duration: '5-7 phút',
-      createdAt: '2026-01-15',
-    ),
-    Topic(
-      id: '2',
-      title: 'Job Interview Preparation',
-      prompt: 'Practice common job interview questions and scenarios',
-      level: TopicLevel.advanced,
-      tags: ['Interview', 'Professional'],
-      questions: [
-        'Tell me about yourself',
-        'What are your strengths and weaknesses?',
-        'Where do you see yourself in 5 years?',
-      ],
-      duration: '3-5 phút',
-      createdAt: '2026-01-14',
-    ),
-  ];
+  List<Topic> _topics = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTopics();
+  }
+
+  Future<void> _loadTopics() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ApiService.getTopics(limit: 100);
+      final list = result['topics'] as List? ?? [];
+      setState(() {
+        _topics = list.map((json) => Topic.fromJson(json)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _showTopicDialog({Topic? topic}) {
     showDialog(
       context: context,
       builder: (context) => _TopicDialog(
         topic: topic,
-        onSave: (newTopic) {
-          setState(() {
+        onSave: (newTopic) async {
+          try {
             if (topic != null) {
-              final index = _topics.indexWhere((t) => t.id == topic.id);
-              if (index != -1) {
-                _topics[index] = newTopic;
-              }
+              await ApiService.updateTopic(
+                id: topic.id,
+                data: newTopic.toJson()..remove('id')..remove('createdAt'),
+              );
             } else {
-              _topics.add(newTopic);
+              await ApiService.createTopic(
+                title: newTopic.title,
+                prompt: newTopic.prompt,
+                level: newTopic.level.name,
+                duration: newTopic.duration,
+                questions: newTopic.questions,
+                tags: newTopic.tags,
+              );
             }
-          });
+            _loadTopics();
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Lỗi: $e')),
+              );
+            }
+          }
         },
       ),
     );
@@ -76,14 +82,24 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _topics.removeWhere((t) => t.id == topic.id);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đã xóa topic')),
-              );
+            onPressed: () async {
+              try {
+                await ApiService.deleteTopic(topic.id);
+                _loadTopics();
+                if (mounted) Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã xóa topic')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) Navigator.pop(context);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi: $e')),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
@@ -143,7 +159,9 @@ class _TopicManagementScreenState extends State<TopicManagementScreen> {
 
         // Topics List
         Expanded(
-          child: ListView.separated(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.separated(
             itemCount: _topics.length,
             separatorBuilder: (context, index) => const SizedBox(height: 16),
             itemBuilder: (context, index) {

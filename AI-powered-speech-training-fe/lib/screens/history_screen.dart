@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/recording.dart';
 import '../models/feedback.dart' as model;
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   final Function(Recording) onViewRecording;
 
   const HistoryScreen({
@@ -12,57 +13,32 @@ class HistoryScreen extends StatelessWidget {
     required this.onViewRecording,
   });
 
-  // Mock data
-  final List<Recording> _mockRecordings = const [
-    // Add mock data here
-  ];
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
 
-  List<Recording> get _recordings {
-    if (_mockRecordings.isEmpty) {
-      return [
-        Recording(
-          id: '1',
-          topicId: '1',
-          topicTitle: 'Travel and Tourism',
-          audioUrl: '',
-          duration: 245,
-          createdAt: '2026-01-18T10:30:00',
-          transcript: 'Sample transcript...',
-          feedback: model.Feedback(
-            overall: 8.2,
-            fluency: 8.0,
-            pronunciation: 7.8,
-            grammar: 8.3,
-            vocabulary: 8.5,
-            coherence: 8.0,
-            strengths: ['Good vocabulary usage', 'Clear pronunciation'],
-            issues: ['Some grammar mistakes'],
-            suggestions: ['Practice more complex sentences'],
-          ),
-        ),
-        Recording(
-          id: '2',
-          topicId: '3',
-          topicTitle: 'Technology and Innovation',
-          audioUrl: '',
-          duration: 189,
-          createdAt: '2026-01-16T14:20:00',
-          transcript: 'Sample transcript...',
-          feedback: model.Feedback(
-            overall: 7.5,
-            fluency: 7.2,
-            pronunciation: 7.8,
-            grammar: 7.5,
-            vocabulary: 7.6,
-            coherence: 7.4,
-            strengths: ['Good topic knowledge'],
-            issues: ['Need to improve fluency'],
-            suggestions: ['Practice speaking more regularly'],
-          ),
-        ),
-      ];
+class _HistoryScreenState extends State<HistoryScreen> {
+  List<Recording> _recordings = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecordings();
+  }
+
+  Future<void> _loadRecordings() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ApiService.getRecordings();
+      final list = result['recordings'] as List? ?? [];
+      setState(() {
+        _recordings = list.map((json) => Recording.fromJson(json)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
     }
-    return _mockRecordings;
   }
 
   @override
@@ -170,7 +146,9 @@ class HistoryScreen extends StatelessWidget {
 
         // Recordings List
         Expanded(
-          child: _recordings.isEmpty
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _recordings.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -199,7 +177,7 @@ class HistoryScreen extends StatelessWidget {
                     final recording = _recordings[index];
                     return _RecordingCard(
                       recording: recording,
-                      onTap: () => onViewRecording(recording),
+                      onTap: () => widget.onViewRecording(recording),
                     );
                   },
                 ),

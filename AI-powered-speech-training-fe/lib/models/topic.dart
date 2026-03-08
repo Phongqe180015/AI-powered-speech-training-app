@@ -21,16 +21,17 @@ class Topic {
 
   factory Topic.fromJson(Map<String, dynamic> json) {
     return Topic(
-      id: json['id'] as String,
+      id: json['_id'] as String? ?? json['id'] as String,
       title: json['title'] as String,
       prompt: json['prompt'] as String,
       level: TopicLevel.values.firstWhere(
         (e) => e.name == json['level'].toString().toLowerCase(),
+        orElse: () => TopicLevel.beginner,
       ),
-      tags: List<String>.from(json['tags'] as List),
-      questions: List<String>.from(json['questions'] as List),
-      duration: json['duration'] as String,
-      createdAt: json['createdAt'] as String,
+      tags: List<String>.from(json['tags'] ?? []),
+      questions: List<String>.from(json['questions'] ?? []),
+      duration: json['duration'] as String? ?? '3-5 phút',
+      createdAt: json['createdAt'] as String? ?? '',
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/topic.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class TopicFeedScreen extends StatefulWidget {
@@ -17,79 +18,35 @@ class TopicFeedScreen extends StatefulWidget {
 class _TopicFeedScreenState extends State<TopicFeedScreen> {
   TopicLevel? _selectedLevel;
   final TextEditingController _searchController = TextEditingController();
+  List<Topic> _topics = [];
+  bool _isLoading = true;
 
-  // Mock data - replace with real data from API
-  final List<Topic> _mockTopics = [
-    Topic(
-      id: '1',
-      title: 'Travel and Tourism',
-      prompt: 'Discuss your travel experiences and favorite destinations',
-      level: TopicLevel.intermediate,
-      tags: ['IELTS', 'Daily'],
-      questions: [
-        'What is your favorite place to visit?',
-        'How do you usually plan your trips?',
-        'What makes a destination worth visiting?',
-      ],
-      duration: '5-7 phút',
-      createdAt: '2026-01-15',
-    ),
-    Topic(
-      id: '2',
-      title: 'Job Interview Preparation',
-      prompt: 'Practice common job interview questions and scenarios',
-      level: TopicLevel.advanced,
-      tags: ['Interview', 'Professional'],
-      questions: [
-        'Tell me about yourself',
-        'What are your strengths and weaknesses?',
-        'Where do you see yourself in 5 years?',
-      ],
-      duration: '3-5 phút',
-      createdAt: '2026-01-14',
-    ),
-    Topic(
-      id: '3',
-      title: 'Technology and Innovation',
-      prompt: 'Discuss the impact of technology on daily life',
-      level: TopicLevel.intermediate,
-      tags: ['IELTS', 'Current Affairs'],
-      questions: [
-        'How has technology changed your life?',
-        'What technology do you use most?',
-        'What are the downsides of modern technology?',
-      ],
-      duration: '5-7 phút',
-      createdAt: '2026-01-13',
-    ),
-    Topic(
-      id: '4',
-      title: 'Daily Routine and Habits',
-      prompt: 'Describe your daily activities and lifestyle',
-      level: TopicLevel.beginner,
-      tags: ['Daily', 'Basic'],
-      questions: [
-        'What time do you wake up?',
-        'What do you usually do in the morning?',
-        'Do you have any special routines?',
-      ],
-      duration: '3-5 phút',
-      createdAt: '2026-01-12',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTopics();
+  }
 
-  List<Topic> get _filteredTopics {
-    return _mockTopics.where((topic) {
-      if (_selectedLevel != null && topic.level != _selectedLevel) {
-        return false;
+  Future<void> _loadTopics() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await ApiService.getTopics(
+        search: _searchController.text.isNotEmpty ? _searchController.text : null,
+        level: _selectedLevel?.name,
+      );
+      final list = result['topics'] as List? ?? [];
+      setState(() {
+        _topics = list.map((json) => Topic.fromJson(json)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi tải topics: $e')),
+        );
       }
-      if (_searchController.text.isNotEmpty) {
-        return topic.title
-            .toLowerCase()
-            .contains(_searchController.text.toLowerCase());
-      }
-      return true;
-    }).toList();
+    }
   }
 
   @override
@@ -123,7 +80,7 @@ class _TopicFeedScreenState extends State<TopicFeedScreen> {
             Expanded(
               child: TextField(
                 controller: _searchController,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => _loadTopics(),
                 decoration: InputDecoration(
                   hintText: 'Tìm kiếm topic...',
                   prefixIcon: const Icon(Icons.search, color: AppColors.gray400),
@@ -132,7 +89,7 @@ class _TopicFeedScreenState extends State<TopicFeedScreen> {
                           icon: const Icon(Icons.clear, color: AppColors.gray400),
                           onPressed: () {
                             _searchController.clear();
-                            setState(() {});
+                            _loadTopics();
                           },
                         )
                       : null,
@@ -145,29 +102,40 @@ class _TopicFeedScreenState extends State<TopicFeedScreen> {
             _LevelChip(
               label: 'Tất cả',
               isSelected: _selectedLevel == null,
-              onTap: () => setState(() => _selectedLevel = null),
+              onTap: () {
+                setState(() => _selectedLevel = null);
+                _loadTopics();
+              },
             ),
             const SizedBox(width: 8),
             _LevelChip(
               label: 'Beginner',
               color: AppColors.beginnerColor,
               isSelected: _selectedLevel == TopicLevel.beginner,
-              onTap: () => setState(() => _selectedLevel = TopicLevel.beginner),
+              onTap: () {
+                setState(() => _selectedLevel = TopicLevel.beginner);
+                _loadTopics();
+              },
             ),
             const SizedBox(width: 8),
             _LevelChip(
               label: 'Intermediate',
               color: AppColors.intermediateColor,
               isSelected: _selectedLevel == TopicLevel.intermediate,
-              onTap: () =>
-                  setState(() => _selectedLevel = TopicLevel.intermediate),
+              onTap: () {
+                setState(() => _selectedLevel = TopicLevel.intermediate);
+                _loadTopics();
+              },
             ),
             const SizedBox(width: 8),
             _LevelChip(
               label: 'Advanced',
               color: AppColors.advancedColor,
               isSelected: _selectedLevel == TopicLevel.advanced,
-              onTap: () => setState(() => _selectedLevel = TopicLevel.advanced),
+              onTap: () {
+                setState(() => _selectedLevel = TopicLevel.advanced);
+                _loadTopics();
+              },
             ),
           ],
         ),
@@ -175,32 +143,34 @@ class _TopicFeedScreenState extends State<TopicFeedScreen> {
 
         // Topics Grid
         Expanded(
-          child: _filteredTopics.isEmpty
-              ? Center(
-                  child: Text(
-                    'Không tìm thấy topic nào',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.gray500,
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _topics.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Không tìm thấy topic nào',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.gray500,
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 400,
+                        childAspectRatio: 1.2,
+                        crossAxisSpacing: 20,
+                        mainAxisSpacing: 20,
+                      ),
+                      itemCount: _topics.length,
+                      itemBuilder: (context, index) {
+                        final topic = _topics[index];
+                        return _TopicCard(
+                          topic: topic,
+                          onTap: () => widget.onSelectTopic(topic),
+                        );
+                      },
                     ),
-                  ),
-                )
-              : GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400,
-                    childAspectRatio: 1.2,
-                    crossAxisSpacing: 20,
-                    mainAxisSpacing: 20,
-                  ),
-                  itemCount: _filteredTopics.length,
-                  itemBuilder: (context, index) {
-                    final topic = _filteredTopics[index];
-                    return _TopicCard(
-                      topic: topic,
-                      onTap: () => widget.onSelectTopic(topic),
-                    );
-                  },
-                ),
         ),
       ],
     );
